@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .emoji {
+        font-size: 8rem;
+        animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+</style>
+
+<div class="container text-center my-5">
+    <div class="error-container">
+        <h1 class="emoji">😢</h1>
+        <h2 class="display-4">Error {{ error_code }}</h2>
+        <p class="lead">{{ error_message }}</p>
+        <a href="/" class="btn btn-primary mt-3">Return Home</a>
+    </div>
+</div>
+{% endblock %}
