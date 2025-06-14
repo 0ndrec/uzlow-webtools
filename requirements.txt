@@ -1,0 +1,4 @@
+pynacl
+ecdsa
+flask
+dotenv

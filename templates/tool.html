@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tool.name }} - Tool Details{% endblock %}
+
+{% block brand_name %}{{ tool.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-gh-bg-light rounded-lg p-6 shadow-lg">        <div class="mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold mb-2">{{ tool.name }}</h1>
+                    <p class="text-gh-text-secondary">
+                        Module: <code class="bg-gh-bg-dark px-2 py-1 rounded">{{ tool.path.split('/')[-1] }}</code>
+                    </p>
+                </div>
+                <button type="button" 
+                        class="inline-flex items-center px-4 py-2 rounded-md bg-gh-accent hover:bg-opacity-90 transition-colors border border-gh-border">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zM6.379 5.227A.25.25 0 006 5.442v5.117a.25.25 0 00.379.214l4.264-2.559a.25.25 0 000-.428L6.379 5.227z"></path>
+                    </svg>
+                    <span class="text-white text-sm font-medium">Run Module</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <h2 class="text-xl font-semibold">Available Functions</h2>
+            {% for name, func in tool.functions.items() %}
+            <div class="bg-gh-bg-dark rounded-lg p-4 border border-gh-border">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="text-gh-accent font-mono font-bold text-lg">
+                        {{ name }}()
+                    </div>
+                </div>
+                <div class="text-gh-text-secondary whitespace-pre-wrap mb-4">{{ func.doc }}</div>
+                {% if func.parameters %}
+                <div class="mt-4 pt-4 border-t border-gh-border">
+                    <h3 class="text-sm font-semibold text-gh-text-primary mb-2">Parameters:</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        {% for param in func.parameters %}
+                        <li class="text-gh-text-secondary text-sm"><code class="bg-gh-bg-default px-1.5 py-0.5 rounded">{{ param }}</code></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="text-gh-text-tertiary text-sm pt-4 border-t border-gh-border">
+                    Module: {{ func.module }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

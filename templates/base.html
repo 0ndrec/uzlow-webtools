@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title | default('Uzlow Web tools') }}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gh: {
+                            text: {
+                                primary: '#e6edf3',
+                                secondary: '#7d8590',
+                                tertiary: '#424a53'
+                            },
+                            bg: {
+                                dark: '#0d1117',
+                                default: '#24292f',
+                                light: '#2d333b'
+                            },
+                            border: '#30363d',
+                            accent: '#2f81f7',
+                            success: '#238636',
+                            danger: '#f85149',
+                            warning: '#9e6a03'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-gh-bg-dark flex flex-col text-gh-text-primary">
+    <!-- Header -->
+    <header class="bg-gh-bg-default border-b border-gh-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo/Brand -->
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('index') if url_for else '/' }}" class="flex items-center">
+                        <div class="w-8 h-8 text-white">
+                            <svg viewBox="0 0 20 20 " fill="currentColor">
+                                <path d="M18 0H2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm-5 16v-2H3v-2h10V9.978l4 3.011zm4-8H7v2.023L3 7.012 7 4v2h10z"/>
+                            </svg>
+                        </div>
+                        <span class="text-white font-semibold ml-2">{% block brand_name %}Web Tools{% endblock %}</span>
+                    </a>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-4">
+                    {% set navigation_items = [
+                        ('/', 'Home'),
+                        ('/about', 'About'),
+                        ('/services', 'Services'),
+                        ('/contact', 'Contact')
+                    ] %}
+                    {% for href, caption in navigation_items %}
+                        <a href="{{ href }}" 
+                           class="px-3 py-2 text-sm text-gh-text-primary hover:text-white transition-colors duration-200 rounded-md hover:bg-gh-bg-light {% if request.path == href %}bg-gh-bg-light text-white{% endif %}">
+                            {{ caption }}
+                        </a>
+                    {% endfor %}
+                </nav>
+
+                <!-- Mobile menu button -->
+                <button type="button" class="md:hidden text-[#e6edf3] hover:text-white" id="mobile-menu-button">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation -->
+            <div class="md:hidden hidden" id="mobile-menu">
+                <div class="px-2 pt-2 pb-3 space-y-1 border-t border-[#30363d]">
+                    {% for href, caption in navigation_items %}
+                        <a href="{{ href }}" 
+                           class="block px-3 py-2 text-base text-[#e6edf3] hover:text-white hover:bg-[#30363d] rounded-md {% if request.path == href %}bg-[#30363d] text-white{% endif %}">
+                            {{ caption }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                {% for category, message in messages %}
+                    <div class="rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 border border-red-200 text-red-800{% elif category == 'success' %}bg-green-50 border border-green-200 text-green-800{% elif category == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                {% if category == 'error' %}
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                {% elif category == 'success' %}
+                                    <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                {% else %}
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">{{ message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content Area -->
+    <main class="flex-1">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {% block content %}
+            <!-- Page content goes here -->
+            <div class="text-center py-12">
+                <h1 class="text-4xl font-bold text-white mb-4">Welcome to Uzlow Services</h1>
+                <p class="text-xl text-github-gray-light max-w-2xl mx-auto">
+                    This is your base template. Override the content block to add your page-specific content.
+                </p>
+            </div>
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-github-gray-dark border-t border-github-gray-medium">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <svg viewBox="0 0 20 20 " fill="currentColor">
+                                <path d="M18 0H2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm-5 16v-2H3v-2h10V9.978l4 3.011zm4-8H7v2.023L3 7.012 7 4v2h10z"/>
+                            </svg>
+                        </div>
+                        <span class="text-xl font-semibold">{% block footer_brand_name %}Web Tools{% endblock %}</span>
+                    </div>
+                    <p class="text-gray-400 mb-4 max-w-md">
+                        {% block company_description %}
+                        Building amazing web experiences with modern technology and thoughtful design.
+                        {% endblock %}
+                    </p>
+                    <div class="flex space-x-4">
+                        <!-- Social Media Links -->
+                        {% set social_links = [
+                            ('#', 'Twitter'),
+                            ('#', 'GitHub'),
+                            ('#', 'LinkedIn')
+                        ] %}
+                        {% for href, platform in social_links %}
+                            <a href="{{ href }}" class="text-gray-400 hover:text-white transition-colors duration-200">
+                                <span class="sr-only">{{ platform }}</span>
+                                <div class="w-6 h-6 bg-gray-600 rounded"></div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        {% set footer_links = [
+                            ('/', 'Home'),
+                            ('/about', 'About'),
+                            ('/services', 'Services'),
+                            ('/contact', 'Contact')
+                        ] %}
+                        {% for href, caption in footer_links %}
+                            <li>
+                                <a href="{{ href }}" class="text-github-gray-light hover:text-white transition-colors duration-200">
+                                    {{ caption }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Support</h3>
+                    <ul class="space-y-2">
+                        {% set support_links = [
+                            ('/help', 'Help Center'),
+                            ('/privacy', 'Privacy Policy'),
+                            ('/terms', 'Terms of Service'),
+                            ('/contact', 'Contact Us')
+                        ] %}
+                        {% for href, caption in support_links %}
+                            <li>
+                                <a href="{{ href }}" class="text-github-gray-light hover:text-white transition-colors duration-200">
+                                    {{ caption }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bottom Footer -->
+            <div class="border-t border-github-gray-medium mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center">
+                <p class="text-github-gray-light text-sm">
+                    © {{ moment().year if moment else '2024' }} {% block copyright_holder %}MyApp{% endblock %}. All rights reserved.
+                </p>
+                <div class="flex space-x-6 mt-4 sm:mt-0">
+                    <a href="/privacy" class="text-github-gray-light hover:text-white text-sm transition-colors duration-200">Privacy</a>
+                    <a href="/terms" class="text-github-gray-light hover:text-white text-sm transition-colors duration-200">Terms</a>
+                    <a href="/cookies" class="text-github-gray-light hover:text-white text-sm transition-colors duration-200">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
