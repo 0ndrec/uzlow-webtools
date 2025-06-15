@@ -1,5 +1,6 @@
-from flask import render_template, url_for, redirect, flash
+from flask import render_template, url_for, redirect, flash, jsonify, request
 from pathlib import Path
+import importlib.util
 
 # Load data about files in tools directory. Return dict with built-in python functions.
 def load_tools()-> list:
@@ -60,6 +61,47 @@ def configure_routes(app):
             
         return render_template("tool.html", title=f"Tool: {tool_name}", tool=tool_data)
 
+    @app.route("/t/<tool_name>/run", methods=['POST'])
+    def run_tool(tool_name):
+        tools = load_tools()
+        tool_data = next((tool for tool in tools if tool["name"] == tool_name), None)
+        
+        if tool_data is None:
+            return jsonify({"error": "Tool not found"}), 404
+            
+        try:
+            # Import the module
+            tools_dir = Path(__file__).parent.parent / "tools"
+            tool_path = tools_dir / f"{tool_name}.py"
+            
+            spec = importlib.util.spec_from_file_location(f"tools.{tool_name}", str(tool_path))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Get the schema if it exists
+            schema = getattr(module, 'DATAFLOW_SCHEMA', None)
+            if not schema:
+                return jsonify({"error": "Tool has no schema defined"}), 400
+                
+            # Get the entrypoint function
+            entrypoint = getattr(module, schema['entrypoint'], None)
+            if not entrypoint:
+                return jsonify({"error": "Tool entrypoint not found"}), 400
+              # Execute with or without input
+            if schema.get('input') is None:
+                # If no input is required in schema, just run the entrypoint
+                result = entrypoint()
+            else:
+                # If input is required, get it from request
+                input_data = request.get_json(silent=True)  # silent=True prevents parsing errors
+                if input_data is None:
+                    return jsonify({"error": "Input required but not provided"}), 400
+                result = entrypoint(input_data)
+            
+            return jsonify({"success": True, "result": result})
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.errorhandler(404)
     def page_not_found(e):

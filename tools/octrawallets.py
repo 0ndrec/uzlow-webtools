@@ -9,17 +9,36 @@ from nacl.public import PrivateKey
 import ecdsa
 from ecdsa.curves import SECP256k1, NIST256p
 from ecdsa.keys import SigningKey as ECDSASigningKey
-import json
-import time
 from datetime import datetime
+from pathlib import Path
 
 
-
+WORDLIST_PATH = Path(__file__).parent.parent / "static" / "wordlist.txt"
 BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
+DATAFLOW_SCHEMA = {
+    "entrypoint": "generate",
+    "input": None,
+    "output": {
+        "type": "object",
+        "properties": {
+            "mnemonic": {"type": "array","items": {"type": "string"},"minItems": 12,"maxItems": 24},
+            "seed_hex": {"type": "string", "format": "hex"},
+            "master_chain_hex": {"type": "string", "format": "hex"},
+            "private_key_hex": {"type": "string", "format": "hex"},
+            "public_key_hex": {"type": "string", "format": "hex"},
+            "private_key_b64": {"type": "string", "format": "base64"},
+            "public_key_b64": {"type": "string", "format": "base64"},
+            "address": {"type": "string", "pattern": "^oct[a-zA-Z0-9]+$"},
+            "entropy_hex": {"type": "string", "format": "hex"},
+            "test_message": {"type": "string"},
+            "test_signature": {"type": "string", "format": "base64"},
+            "signature_valid": {"type": "boolean"}
+        },
+    }
+}
 
-
-def load_wordlist(filename: str = "english.txt") -> List[str]:
+def load_wordlist(filename: str = WORDLIST_PATH) -> List[str]:
     if not os.path.exists(filename):
         raise FileNotFoundError(f"File {filename} not found!")
     
@@ -215,37 +234,28 @@ def generate():
     }
 
 
-def save_wallet(data, _path):
-    filename = f"{_path}/octra_wallet_{data['address'][-8:]}_{int(time.time())}.txt"
+def save_wallet(data):
     
     content = f"""OCTRA WALLET
-{"=" * 50}
+    {"=" * 50}
 
-SECURITY WARNING: KEEP THIS FILE SECURE AND NEVER SHARE YOUR PRIVATE KEY
+    SECURITY WARNING: KEEP THIS FILE SECURE AND NEVER SHARE YOUR PRIVATE KEY
 
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Address Format: oct + Base58(SHA256(pubkey))
+    Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    Address Format: oct + Base58(SHA256(pubkey))
 
-Mnemonic: {' '.join(data['mnemonic'])}
-Private Key (B64): {data['private_key_b64']}
-Public Key (B64): {data['public_key_b64']}
-Address: {data['address']}
+    Mnemonic: {' '.join(data['mnemonic'])}
+    Private Key (B64): {data['private_key_b64']}
+    Public Key (B64): {data['public_key_b64']}
+    Address: {data['address']}
 
-Technical Details:
-Entropy: {data['entropy_hex']}
-Signature Algorithm: Ed25519
-Derivation: BIP39-compatible (PBKDF2-HMAC-SHA512, 2048 iterations)
-"""
+    Technical Details:
+    Entropy: {data['entropy_hex']}
+    Signature Algorithm: Ed25519
+    Derivation: BIP39-compatible (PBKDF2-HMAC-SHA512, 2048 iterations)
+    """
     
-    with open(filename, 'w') as f:
-        f.write(content)
-    
-    return jsonify({
-        'success': True, 
-        'filename': filename,
-        'content': content
-    })
-
+    return content.encode('utf-8')
 
 def derive(data):
     seed_hex = data.get('seed_hex', '')
@@ -263,14 +273,18 @@ def derive(data):
             index=index
         )
         
-        return jsonify({
+        return {
             'success': True,
             'address': derived['address'],
             'path': '/'.join(str(i & 0x7FFFFFFF) + ("'" if i & 0x80000000 else '') for i in derived['path']),
             'network_type_name': derived['network_type_name']
-        })
+        }
     except Exception as e:
-        return jsonify({
+        return {
             'success': False,
             'error': str(e)
-        })
+        }
+
+
+if __name__ == "__main__":
+    print(generate())

@@ -6,7 +6,8 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-gh-bg-light rounded-lg p-6 shadow-lg">        <div class="mb-6">
+    <div class="bg-gh-bg-light rounded-lg p-6 shadow-lg">
+        <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold mb-2">{{ tool.name }}</h1>
@@ -15,12 +16,30 @@
                     </p>
                 </div>
                 <button type="button" 
+                        id="runButton"
                         class="inline-flex items-center px-4 py-2 rounded-md bg-gh-accent hover:bg-opacity-90 transition-colors border border-gh-border">
                     <svg class="w-5 h-5 mr-2" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zM6.379 5.227A.25.25 0 006 5.442v5.117a.25.25 0 00.379.214l4.264-2.559a.25.25 0 000-.428L6.379 5.227z"></path>
                     </svg>
                     <span class="text-white text-sm font-medium">Run Module</span>
                 </button>
+            </div>
+
+            <!-- Run Results Section -->
+            <div id="results" class="mt-6 hidden">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gh-text-primary mb-2">Results:</h3>
+                    <div class="bg-gh-bg-dark rounded p-4 overflow-x-auto">
+                        <pre id="resultContent" class="text-gh-text-secondary whitespace-pre-wrap"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error" class="mt-6 hidden">
+                <div class="bg-gh-danger bg-opacity-10 border border-gh-danger text-gh-danger rounded p-4">
+                    <p id="errorContent" class="text-sm"></p>
+                </div>
             </div>
         </div>
 
@@ -52,4 +71,35 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('runButton').addEventListener('click', async function() {
+    // Clear previous results/errors
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('error').classList.add('hidden');
+    
+    try {
+        const response = await fetch('/t/{{ tool.name }}/run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            document.getElementById('errorContent').textContent = data.error;
+            document.getElementById('error').classList.remove('hidden');
+        } else {
+            document.getElementById('resultContent').textContent = JSON.stringify(data.result, null, 2);
+            document.getElementById('results').classList.remove('hidden');
+        }
+    } catch (error) {
+        document.getElementById('errorContent').textContent = 'An error occurred while running the module';
+        document.getElementById('error').classList.remove('hidden');
+    }
+});</script>
 {% endblock %}
