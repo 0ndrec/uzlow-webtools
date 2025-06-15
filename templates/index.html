@@ -10,38 +10,31 @@
         <hr class="my-4">
         <p>Explore our tools and make your web development workflow more efficient.</p>
         <a class="btn btn-primary btn-lg" href="#tools" role="button">Explore Tools</a>
-    </div>
-    
-    <section id="tools" class="mt-5">
-        <h2 class="mb-4">Available Tools</h2>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Tool 1</h5>
-                        <p class="card-text">Description of the first tool.</p>
-                        <a href="#" class="btn btn-primary">Try it</a>
+    </div>    <section id="tools" class="mt-5">
+        <h2 class="text-2xl font-bold mb-6 text-gh-text-primary">Available Tools</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for tool in tools %}
+            <a href="{{ url_for('tool', tool_name=tool.name) }}" 
+               class="block border border-gh-border rounded-lg overflow-hidden hover:border-gh-accent transition-colors duration-200 bg-gh-bg-light group">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-semibold text-gh-text-primary group-hover:text-gh-accent">
+                            {{ tool.name | title }}
+                        </h3>
+                        <svg class="w-6 h-6 text-gh-text-secondary group-hover:text-gh-accent transform group-hover:translate-x-1 transition-all" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Tool 2</h5>
-                        <p class="card-text">Description of the second tool.</p>
-                        <a href="#" class="btn btn-primary">Try it</a>
-                    </div>
+            </a>
+            {% else %}
+            <div class="col-span-full">
+                <div class="bg-gh-bg-light border border-gh-border rounded-lg p-4 text-gh-text-secondary">
+                    No tools are currently available. Please check back later.
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Tool 3</h5>
-                        <p class="card-text">Description of the third tool.</p>
-                        <a href="#" class="btn btn-primary">Try it</a>
-                    </div>
-                </div>
-            </div>
+            {% endfor %}
         </div>
     </section>
 </div>

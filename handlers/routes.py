@@ -44,7 +44,7 @@ def configure_routes(app):
 
     @app.route("/")
     def index():
-        tools = None
+        tools = load_tools()
         return render_template("index.html", title="Uzlow Web Tools", tools=tools)
     
     @app.route("/about")
@@ -58,7 +58,18 @@ def configure_routes(app):
         if tool_data is None:
             flash("Tool not found", "error")
             return redirect(url_for("index"))
-            
+
+        # Get the schema from the module
+        tools_dir = Path(__file__).parent.parent / "tools"
+        tool_path = tools_dir / f"{tool_name}.py"
+        try:
+            spec = importlib.util.spec_from_file_location(f"tools.{tool_name}", str(tool_path))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            tool_data['schema'] = getattr(module, 'DATAFLOW_SCHEMA', None)
+        except Exception as e:
+            print(f"Error loading schema for {tool_name}: {e}")
+
         return render_template("tool.html", title=f"Tool: {tool_name}", tool=tool_data)
 
     @app.route("/t/<tool_name>/run", methods=['POST'])

@@ -8,22 +8,70 @@
 <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="bg-gh-bg-light rounded-lg p-6 shadow-lg">
         <div class="mb-6">
-            <div class="flex items-center justify-between">
+            <div class="flex items-start justify-between">
                 <div>
                     <h1 class="text-2xl font-bold mb-2">{{ tool.name }}</h1>
                     <p class="text-gh-text-secondary">
                         Module: <code class="bg-gh-bg-dark px-2 py-1 rounded">{{ tool.path.split('/')[-1] }}</code>
                     </p>
                 </div>
-                <button type="button" 
-                        id="runButton"
-                        class="inline-flex items-center px-4 py-2 rounded-md bg-gh-accent hover:bg-opacity-90 transition-colors border border-gh-border">
-                    <svg class="w-5 h-5 mr-2" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zM6.379 5.227A.25.25 0 006 5.442v5.117a.25.25 0 00.379.214l4.264-2.559a.25.25 0 000-.428L6.379 5.227z"></path>
-                    </svg>
-                    <span class="text-white text-sm font-medium">Run Module</span>
-                </button>
+                <div class="text-right">
+                    <button type="button" 
+                            id="runButton"
+                            class="inline-flex items-center px-4 py-2 rounded-md bg-gh-accent hover:bg-opacity-90 transition-colors border border-gh-border">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zM6.379 5.227A.25.25 0 006 5.442v5.117a.25.25 0 00.379.214l4.264-2.559a.25.25 0 000-.428L6.379 5.227z"></path>
+                        </svg>
+                        <span class="text-white text-sm font-medium">Run Module</span>
+                    </button>
+                    <p id="requiredInputsWarning" class="text-gh-warning text-sm mt-2 hidden">
+                        <svg class="inline w-4 h-4 mr-1" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 10.5a.75.75 0 110-1.5.75.75 0 010 1.5zM8 4a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4z"/>
+                        </svg>
+                        Required inputs missing
+                    </p>
+                </div>
             </div>
+
+            <!-- Input Parameters Section -->
+            {% if tool.schema and tool.schema.get("input") %}
+            <div id="inputParams" class="mt-6 bg-gh-bg-dark rounded-lg p-4 border border-gh-border">
+                <h3 class="text-lg font-semibold text-gh-text-primary mb-4">Input Parameters</h3>
+                <form id="inputForm" class="space-y-4">
+                    {% for field_name, field_schema in tool.schema.input.items() %}
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gh-text-primary mb-2" for="{{ field_name }}">
+                            {{ field_name }}
+                            {% if field_schema.get("required", True) %}
+                            <span class="text-gh-danger">*</span>
+                            {% endif %}
+                        </label>
+                        {% if field_schema.type == "boolean" %}
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                            <input type="checkbox" id="{{ field_name }}" name="{{ field_name }}"
+                                   class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                   {% if field_schema.get("default", False) %}checked{% endif %}>
+                            <label for="{{ field_name }}"
+                                   class="toggle-label block overflow-hidden h-6 rounded-full bg-gh-border cursor-pointer"></label>
+                        </div>
+                        {% else %}
+                        <input type="{{ 'number' if field_schema.type == 'integer' else 'text' }}"
+                               id="{{ field_name }}"
+                               name="{{ field_name }}"
+                               class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
+                               value="{{ field_schema.get('default', '') }}"
+                               {% if field_schema.get("minimum") is not none %}min="{{ field_schema.minimum }}"{% endif %}
+                               {% if field_schema.get("maximum") is not none %}max="{{ field_schema.maximum }}"{% endif %}
+                               {% if field_schema.get("required", True) %}required{% endif %}>
+                        {% endif %}
+                        {% if field_schema.get("description") %}
+                        <p class="mt-1 text-sm text-gh-text-secondary">{{ field_schema.description }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </form>
+            </div>
+            {% endif %}
 
             <!-- Run Results Section -->
             <div id="results" class="mt-6 hidden">
@@ -75,17 +123,65 @@
 
 {% block extra_js %}
 <script>
+function validateForm() {
+    const form = document.getElementById('inputForm');
+    if (!form) return true;
+
+    let isValid = true;
+    const requiredInputs = form.querySelectorAll('[required]');
+    
+    requiredInputs.forEach(input => {
+        if (!input.value) {
+            isValid = false;
+            input.classList.add('border-gh-danger');
+        } else {
+            input.classList.remove('border-gh-danger');
+        }
+    });
+
+    const warningElement = document.getElementById('requiredInputsWarning');
+    if (warningElement) {
+        warningElement.classList.toggle('hidden', isValid);
+    }
+
+    return isValid;
+}
+
+function getFormData() {
+    const form = document.getElementById('inputForm');
+    if (!form) return {};
+
+    const formData = {};
+    const inputs = form.querySelectorAll('input');
+    
+    inputs.forEach(input => {
+        let value = input.type === 'checkbox' ? input.checked : input.value;
+        if (input.type === 'number') {
+            value = Number(value);
+        }
+        formData[input.name] = value;
+    });
+
+    return formData;
+}
+
 document.getElementById('runButton').addEventListener('click', async function() {
+    if (!validateForm()) {
+        return;
+    }
+
     // Clear previous results/errors
     document.getElementById('results').classList.add('hidden');
     document.getElementById('error').classList.add('hidden');
     
     try {
+        const inputData = getFormData();
         const response = await fetch('/t/{{ tool.name }}/run', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify(inputData)
         });
         
         const data = await response.json();
@@ -101,5 +197,41 @@ document.getElementById('runButton').addEventListener('click', async function() 
         document.getElementById('errorContent').textContent = 'An error occurred while running the module';
         document.getElementById('error').classList.remove('hidden');
     }
+});
+
+// Add form validation on input
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('inputForm');
+    if (form) {
+        const inputs = form.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', validateForm);
+        });
+        // Initial validation
+        validateForm();
+    }
 });</script>
+
+<style>
+/* Toggle switch styles */
+.toggle-checkbox:checked {
+    right: 0;
+    border-color: #2f81f7;
+}
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #2f81f7;
+}
+.toggle-checkbox {
+    right: 0;
+    z-index: 5;
+}
+.toggle-label {
+    transition: background-color 0.2s ease-in;
+}
+
+/* Input validation styles */
+input:required:invalid {
+    border-color: #f85149;
+}
+</style>
 {% endblock %}
