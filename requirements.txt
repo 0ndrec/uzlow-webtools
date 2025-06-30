@@ -2,3 +2,5 @@ pynacl
 ecdsa
 flask
 dotenv
+aiohttp
+pyperclip
