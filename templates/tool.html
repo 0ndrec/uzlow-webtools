@@ -42,7 +42,7 @@
                     <div class="form-group">
                         <label class="block text-sm font-medium text-gh-text-primary mb-2" for="{{ field_name }}">
                             {{ field_name }}
-                            {% if field_schema.get("required", True) %}
+                            {% if field_schema.required %}
                             <span class="text-gh-danger">*</span>
                             {% endif %}
                         </label>
@@ -50,19 +50,26 @@
                         <div class="relative inline-block w-10 mr-2 align-middle select-none">
                             <input type="checkbox" id="{{ field_name }}" name="{{ field_name }}"
                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                   {% if field_schema.get("default", False) %}checked{% endif %}>
+                                   {% if field_schema.default %}checked{% endif %}>
                             <label for="{{ field_name }}"
                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-gh-border cursor-pointer"></label>
                         </div>
+                        {% elif field_schema.enum %}
+                        <select id="{{ field_name }}" name="{{ field_name }}"
+                               class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
+                               {% if field_schema.required %}required{% endif %}>
+                            <option value="">Select {{ field_name }}</option>
+                            {% for option in field_schema.enum %}
+                            <option value="{{ option }}"{% if option == field_schema.default %} selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                        <input type="{{ 'number' if field_schema.type == 'integer' else 'text' }}"
+                        <input type="{{ 'number' if field_schema.type in ['integer', 'number'] else 'text' }}"
                                id="{{ field_name }}"
                                name="{{ field_name }}"
                                class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
-                               value="{{ field_schema.get('default', '') }}"
-                               {% if field_schema.get("minimum") is not none %}min="{{ field_schema.minimum }}"{% endif %}
-                               {% if field_schema.get("maximum") is not none %}max="{{ field_schema.maximum }}"{% endif %}
-                               {% if field_schema.get("required", True) %}required{% endif %}>
+                               value="{{ field_schema.default or '' }}"
+                               {% if field_schema.required %}required{% endif %}>
                         {% endif %}
                         {% if field_schema.get("description") %}
                         <p class="mt-1 text-sm text-gh-text-secondary">{{ field_schema.description }}</p>

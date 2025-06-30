@@ -94,9 +94,23 @@ def configure_routes(app):
             spec = importlib.util.spec_from_file_location(f"tools.{tool_name}", str(tool_path))
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            tool_data['schema'] = getattr(module, 'DATAFLOW_SCHEMA', None)
+            schema = getattr(module, 'DATAFLOW_SCHEMA', None)
+            if schema and 'input' in schema:
+                # Restructure the schema for the template
+                input_fields = {}
+                if 'properties' in schema['input']:
+                    for field_name, field_props in schema['input']['properties'].items():
+                        input_fields[field_name] = {
+                            'type': field_props.get('type', 'string'),
+                            'required': field_name in schema['input'].get('required', []),
+                            'enum': field_props.get('enum'),
+                            'default': field_props.get('default')
+                        }
+                schema['input'] = input_fields
+            tool_data['schema'] = schema
         except Exception as e:
             print(f"Error loading schema for {tool_name}: {e}")
+            tool_data['schema'] = None
 
         return render_template("tool.html", title=f"Tool: {tool_name}", tool=tool_data)
 
