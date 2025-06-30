@@ -1,33 +1,60 @@
 from flask import render_template, url_for, redirect, flash, jsonify, request
 from pathlib import Path
 import importlib.util
+import importlib
+import inspect
 
 # Load data about files in tools directory. Return dict with built-in python functions.
 def load_tools()-> list:
     tools_dir = Path(__file__).parent.parent / "tools"
     tools = []
+    
     for tool in tools_dir.iterdir():
         if tool.is_file() and tool.suffix == ".py":
             tool_name = tool.stem
             func_dict = {}
             try:
-                # Import the module correctly using importlib
-                import importlib
                 spec = importlib.util.spec_from_file_location(f"tools.{tool_name}", str(tool))
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 
-                # Get all user-defined callable attributes that don't start with underscore
-                for attr_name in dir(module):
-                    if not attr_name.startswith("_"):
-                        attr = getattr(module, attr_name)
-                        if callable(attr) and getattr(attr, "__module__", None) == module.__name__:
-                            func_dict[attr_name] = {
-                                "doc": attr.__doc__ or "No documentation available",
-                                "name": attr_name,
-                                "parameters": attr.__code__.co_varnames[:attr.__code__.co_argcount],
-                                "module": module.__name__
-                            }
+                # Inspect all module members
+                for name, member in inspect.getmembers(module):
+                    # Skip private members
+                    if name.startswith('_'):
+                        continue
+                        
+                    # Check if it's a class defined in this module
+                    if inspect.isclass(member) and member.__module__ == module.__name__:
+                        # Get class methods
+                        for method_name, method in inspect.getmembers(member, predicate=inspect.isfunction):
+                            if not method_name.startswith('_'):
+                                # Get method signature
+                                sig = inspect.signature(method)
+                                parameters = list(sig.parameters.keys())
+                                if 'self' in parameters:  # Remove 'self' from instance methods
+                                    parameters.remove('self')
+                                    
+                                func_dict[f"{name}.{method_name}"] = {
+                                    "doc": method.__doc__ or "No documentation available",
+                                    "name": method_name,
+                                    "class": name,
+                                    "parameters": parameters,
+                                    "module": module.__name__,
+                                    "is_class_method": True
+                                }
+                    
+                    # Check if it's a function defined in this module
+                    elif inspect.isfunction(member) and member.__module__ == module.__name__:
+                        sig = inspect.signature(member)
+                        func_dict[name] = {
+                            "doc": member.__doc__ or "No documentation available",
+                            "name": name,
+                            "parameters": list(sig.parameters.keys()),
+                            "module": module.__name__,
+                            "is_class_method": False
+                        }
+                        
             except Exception as e:
                 print(f"Error importing {tool_name}: {e}")
             
@@ -37,6 +64,7 @@ def load_tools()-> list:
                     "functions": func_dict,
                     "path": str(tool.relative_to(tools_dir))
                 })
+    
     return tools
 
 
