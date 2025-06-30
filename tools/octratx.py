@@ -32,15 +32,6 @@ DATAFLOW_SCHEMA = {
             "amount": {"type": "number"},
             "limit": {"type": "integer", "default": 20},
             "wallet_path": {"type": "string", "default": "wallet.json"},
-            "example_wallet_schema": {
-                "type": "object",
-                "properties": {
-                    "priv": {"type": "string", "description": "Base64 encoded private key"},
-                    "addr": {"type": "string", "description": "Octra address"},
-                    "rpc": {"type": "string", "default": "https://octra.network", "description": "RPC endpoint URL"}
-                },
-                "required": ["priv", "addr"]
-            }
         },
         "required": ["action"]
     },
