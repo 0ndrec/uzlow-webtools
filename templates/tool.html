@@ -49,15 +49,25 @@
                         {% if field_schema.type == "boolean" %}
                         <div class="relative inline-block w-10 mr-2 align-middle select-none">
                             <input type="checkbox" id="{{ field_name }}" name="{{ field_name }}"
-                                   class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                   {% if field_schema.default %}checked{% endif %}>
+                                class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                {% if field_schema.default %}checked{% endif %}>
                             <label for="{{ field_name }}"
-                                   class="toggle-label block overflow-hidden h-6 rounded-full bg-gh-border cursor-pointer"></label>
+                                class="toggle-label block overflow-hidden h-6 rounded-full bg-gh-border cursor-pointer"></label>
                         </div>
+                        {% elif field_schema.type == "json" %}
+                        <textarea 
+                            id="{{ field_name }}"
+                            name="{{ field_name }}"
+                            data-type="json"
+                            rows="4"
+                            class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2 font-mono text-sm"
+                            {% if field_schema.required %}required{% endif %}
+                            placeholder='Input valid JSON here'
+                        >{{ field_schema.default or "" }}</textarea>
                         {% elif field_schema.enum %}
                         <select id="{{ field_name }}" name="{{ field_name }}"
-                               class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
-                               {% if field_schema.required %}required{% endif %}>
+                            class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
+                            {% if field_schema.required %}required{% endif %}>
                             <option value="">Select {{ field_name }}</option>
                             {% for option in field_schema.enum %}
                             <option value="{{ option }}"{% if option == field_schema.default %} selected{% endif %}>{{ option }}</option>
@@ -65,11 +75,11 @@
                         </select>
                         {% else %}
                         <input type="{{ 'number' if field_schema.type in ['integer', 'number'] else 'text' }}"
-                               id="{{ field_name }}"
-                               name="{{ field_name }}"
-                               class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
-                               value="{{ field_schema.default or '' }}"
-                               {% if field_schema.required %}required{% endif %}>
+                            id="{{ field_name }}"
+                            name="{{ field_name }}"
+                            class="mt-1 block w-full rounded-md bg-gh-bg-default border-gh-border text-gh-text-primary px-3 py-2"
+                            value="{{ field_schema.default or '' }}"
+                            {% if field_schema.required %}required{% endif %}>
                         {% endif %}
                         {% if field_schema.get("description") %}
                         <p class="mt-1 text-sm text-gh-text-secondary">{{ field_schema.description }}</p>
@@ -130,7 +140,75 @@
 {% endblock %}
 
 {% block extra_js %}
+
+
 <script>
+
+
+function validateJson(jsonString) {
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        return null;
+    }
+}
+
+document.getElementById('validateJsonBtn')?.addEventListener('click', function() {
+    const textarea = document.getElementById('rawJsonInput');
+    const json = validateJson(textarea.value);
+    if (json) {
+        textarea.classList.remove('border-gh-danger');
+        textarea.classList.add('border-gh-accent');
+    } else {
+        textarea.classList.remove('border-gh-accent');
+        textarea.classList.add('border-gh-danger');
+    }
+});
+
+document.getElementById('clearJsonBtn')?.addEventListener('click', function() {
+    const textarea = document.getElementById('rawJsonInput');
+    textarea.value = '';
+    textarea.classList.remove('border-gh-danger', 'border-gh-accent');
+});
+
+// Modify the existing getFormData function
+function getFormData() {
+    const form = document.getElementById('inputForm');
+    if (!form) return {};
+
+    const formData = {};
+    const inputs = form.querySelectorAll('input, select, textarea');
+    
+    inputs.forEach(input => {
+        if (!input.name) return; // Skip inputs without names
+        
+        let value = input.value;
+        
+        // Handle different input types
+        if (input.type === 'checkbox') {
+            value = input.checked;
+        } else if (input.type === 'number') {
+            value = value ? Number(value) : '';
+        } else if (input.dataset.type === 'json') {
+            // Try to parse JSON for fields marked as JSON type
+            try {
+                value = value ? JSON.parse(value) : '';
+            } catch (e) {
+                console.error(`Invalid JSON in field ${input.name}:`, e);
+                input.classList.add('border-gh-danger');
+                throw new Error(`Invalid JSON in field ${input.name}`);
+            }
+        }
+
+        if (value !== '') {
+            formData[input.name] = value;
+        }
+    });
+
+    return formData;
+}
+
+
 function validateForm() {
     const form = document.getElementById('inputForm');
     if (!form) return true;
@@ -144,6 +222,18 @@ function validateForm() {
             input.classList.add('border-gh-danger');
         } else {
             input.classList.remove('border-gh-danger');
+            // Validate JSON fields
+            if (input.dataset.type === 'json') {
+                isValid = validateJsonField(input) && isValid;
+            }
+        }
+    });
+
+    // Also validate non-required JSON fields
+    const jsonInputs = form.querySelectorAll('[data-type="json"]:not([required])');
+    jsonInputs.forEach(input => {
+        if (input.value) {
+            isValid = validateJsonField(input) && isValid;
         }
     });
 
@@ -207,6 +297,20 @@ document.getElementById('runButton').addEventListener('click', async function() 
     }
 });
 
+function validateJsonField(input) {
+    if (!input.value) return true;
+    try {
+        JSON.parse(input.value);
+        input.classList.remove('border-gh-danger');
+        input.classList.add('border-gh-accent');
+        return true;
+    } catch (e) {
+        input.classList.remove('border-gh-accent');
+        input.classList.add('border-gh-danger');
+        return false;
+    }
+}
+
 // Add form validation on input
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('inputForm');
@@ -218,7 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initial validation
         validateForm();
     }
-});</script>
+});
+</script>
 
 <style>
 /* Toggle switch styles */

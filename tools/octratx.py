@@ -26,10 +26,28 @@ DATAFLOW_SCHEMA = {
                 "description": "Amount to send (required for send action)",
                 "minimum": 0.000001
             },
-            "wallet_path": {
-                "type": "string",
-                "description": "Path to wallet file",
-                "default": "wallet.json"
+            "wallet_data": {
+                "type": "json",
+                "description": "open wallet.json and copy-paste the content here",
+                "contentSchema": {
+                    "type": "object",
+                    "properties": {
+                        "private_key": {
+                            "type": "string",
+                            "description": "Your Octra wallet private key"
+                        },
+                        "address": {
+                            "type": "string",
+                            "description": "Your Octra wallet address"
+                        },
+                        "rpc_url": {
+                            "type": "string",
+                            "description": "RPC endpoint URL (default: https://octra.network)",
+                            "default": "https://octra.network"
+                        }
+                    },
+                    "required": ["private_key", "address"]
+                }
             }
         },
         "required": ["action"]
@@ -193,8 +211,15 @@ def process_transaction(input_data: Dict[str, Any]) -> Dict[str, Any]:
         
     Returns:
         Operation result
+
+    Example wallet_data:
+        {
+            "priv": "private-key-here",
+            "addr": "octxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "rpc": "https://octra.network"
+        }
     """
-    wallet = OctraWallet(input_data.get('wallet_path', 'wallet.json'))
+    wallet = OctraWallet(input_data.get('wallet_data'))
     
     try:
         wallet.load_wallet()

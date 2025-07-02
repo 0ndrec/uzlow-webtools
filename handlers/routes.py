@@ -1,6 +1,7 @@
 from flask import render_template, url_for, redirect, flash, jsonify, request
 from pathlib import Path
 import importlib.util
+import json
 import importlib
 import inspect
 
@@ -152,20 +153,35 @@ def configure_routes(app):
             schema = getattr(module, 'DATAFLOW_SCHEMA', None)
             if not schema:
                 return jsonify({"error": "Tool has no schema defined"}), 400
-                
+                    
             # Get the entrypoint function
             entrypoint = getattr(module, schema['entrypoint'], None)
             if not entrypoint:
                 return jsonify({"error": "Tool entrypoint not found"}), 400
-              # Execute with or without input
+
+            # Handle input processing
             if schema.get('input') is None:
                 # If no input is required in schema, just run the entrypoint
                 result = entrypoint()
             else:
-                # If input is required, get it from request
-                input_data = request.get_json(silent=True)  # silent=True prevents parsing errors
+                # Get input data from request
+                input_data = request.get_json(silent=True)
                 if input_data is None:
                     return jsonify({"error": "Input required but not provided"}), 400
+
+                # Process fields marked as type:json
+                if isinstance(schema['input'], dict) and 'properties' in schema['input']:
+                    for field_name, field_props in schema['input']['properties'].items():
+                        if field_props.get('type') == 'json' and field_name in input_data:
+                            try:
+                                # If the input is a string, try to parse it as JSON
+                                if isinstance(input_data[field_name], str):
+                                    input_data[field_name] = json.loads(input_data[field_name])
+                            except json.JSONDecodeError:
+                                return jsonify({
+                                    "error": f"Invalid JSON format for field '{field_name}'"
+                                }), 400
+
                 result = entrypoint(input_data)
             
             return jsonify({"success": True, "result": result})
